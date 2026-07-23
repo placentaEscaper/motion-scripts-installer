@@ -20,6 +20,12 @@
 #   7. Bakes a self-update check into `prj`: once a day it checks the latest
 #      commit on the main branch and, if a newer one exists, pulls it and
 #      re-syncs dependencies via uv before running main.py.
+#   8. Copies the "Liven_Template" template project folder into
+#        ~/.config/projectifier/
+#      and unpacks tokens.zip into
+#        ~/.local/bin/projectifier/env
+#      Both Liven_Template/ and tokens.zip must sit next to this script
+#      (i.e. in the same folder as install_2.sh) at install time.
 #
 # Re-running install.sh always force-updates to the latest commit on main.
 #
@@ -42,15 +48,25 @@ PYTHON_VERSION="3.14"
 
 BIN_DIR="${HOME}/.local/bin"
 CODE_DIR="${BIN_DIR}/${REPO_NAME}"                 # the actual git checkout lives here
-INSTALLER_META_DIR="${HOME}/.config/projectifier/.installer"  # installer's own bookkeeping files
+CONFIG_DIR="${HOME}/.config/projectifier"
+INSTALLER_META_DIR="${CONFIG_DIR}/.installer"  # installer's own bookkeeping files
 # NOTE: the app itself (projectifier/filesystem.py) separately writes
-# ~/.config/projectifier/configs.txt and ~/.config/projectifier/Liven_Template folder
-# at runtime — that's unrelated to where we put the code, and is left alone.
+# ~/.config/projectifier/configs.txt at runtime — that's unrelated to where
+# we put the code, and is left alone.
 
 CRED_FILE="${INSTALLER_META_DIR}/.credentials"
 SHA_FILE="${INSTALLER_META_DIR}/.commit_sha"
 LAST_CHECK_FILE="${INSTALLER_META_DIR}/.last_check"
 UPDATE_INTERVAL_SECONDS=86400   # 24 hours
+
+# SCRIPT_DIR is where install_2.sh itself lives — Liven_Template/ and
+# tokens.zip are expected to sit right next to it at install time.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TEMPLATE_NAME="Liven_Template"
+TEMPLATE_SRC="${SCRIPT_DIR}/${TEMPLATE_NAME}"
+TEMPLATE_DEST="${CONFIG_DIR}/${TEMPLATE_NAME}"
+TOKENS_ZIP="${SCRIPT_DIR}/tokens.zip"
+ENV_DIR="${CODE_DIR}/env"
 
 # ---------------------------------------------------------------------------
 # Output helpers
@@ -119,7 +135,20 @@ uv python install "${PYTHON_VERSION}"
 # 4. Directories
 # ---------------------------------------------------------------------------
 mkdir -p "${BIN_DIR}"
+mkdir -p "${CONFIG_DIR}"
 mkdir -p "${INSTALLER_META_DIR}"
+
+# ---------------------------------------------------------------------------
+# 4b. Template project ("Liven_Template" folder -> ~/.config/projectifier/)
+# ---------------------------------------------------------------------------
+if [[ -d "${TEMPLATE_SRC}" ]]; then
+  info "Copying ${TEMPLATE_NAME}/ into ${CONFIG_DIR}..."
+  rm -rf "${TEMPLATE_DEST}"
+  cp -R "${TEMPLATE_SRC}" "${TEMPLATE_DEST}"
+  ok "Template project installed at ${TEMPLATE_DEST}"
+else
+  warn "No '${TEMPLATE_NAME}' folder found next to this script (${SCRIPT_DIR}) — skipping template copy."
+fi
 
 # ---------------------------------------------------------------------------
 # 5. Fine-grained GitHub token (the repo is private)
@@ -188,6 +217,24 @@ ok "Installed commit: ${CURRENT_SHA:0:7}"
 info "Installing dependencies via 'uv sync' (per pyproject.toml / uv.lock)..."
 ( cd "${CODE_DIR}" && uv sync )
 ok "Dependencies installed."
+
+# ---------------------------------------------------------------------------
+# 7b. Tokens (tokens.zip -> ~/.local/bin/projectifier/env)
+# ---------------------------------------------------------------------------
+if [[ -f "${TOKENS_ZIP}" ]]; then
+  if ! command -v unzip >/dev/null 2>&1; then
+    warn "'unzip' not found — skipping token extraction. Install unzip and re-run, or unpack ${TOKENS_ZIP} into ${ENV_DIR} manually."
+  else
+    info "Unpacking tokens.zip into ${ENV_DIR}..."
+    mkdir -p "${ENV_DIR}"
+    unzip -o -q "${TOKENS_ZIP}" -d "${ENV_DIR}"
+    chmod 700 "${ENV_DIR}"
+    find "${ENV_DIR}" -type f -exec chmod 600 {} +
+    ok "Tokens unpacked into ${ENV_DIR}"
+  fi
+else
+  warn "No 'tokens.zip' found next to this script (${SCRIPT_DIR}) — skipping token extraction."
+fi
 
 # ---------------------------------------------------------------------------
 # 8. Wrapper script `prj` with self-update
@@ -294,12 +341,13 @@ info "after which the '${CMD_NAME}' command will be available."
 info "To force an update check manually: ${CMD_NAME} --update"
 echo
 
-if [[ ! -f "${CODE_DIR}/env/.env" ]]; then
-  warn "${CODE_DIR}/env/.env is missing (it's gitignored, so it doesn't come with the repo)."
+if [[ ! -f "${ENV_DIR}/.env" ]]; then
+  warn "${ENV_DIR}/.env is missing (it's gitignored, so it doesn't come with the repo,"
+  warn "and no tokens.zip with it was found next to install_2.sh)."
   warn "Create it manually before the first run:"
-  warn "  mkdir -p '${CODE_DIR}/env'"
-  warn "  echo 'TOKEN=<your Airtable Personal Access Token>' > '${CODE_DIR}/env/.env'"
+  warn "  mkdir -p '${ENV_DIR}'"
+  warn "  echo 'TOKEN=<your Airtable Personal Access Token>' > '${ENV_DIR}/.env'"
   warn "If you use the Google Drive download feature ('Related creative' field),"
   warn "you'll also need an OAuth client secret from Google Cloud Console at:"
-  warn "  ${CODE_DIR}/env/credentials.json"
+  warn "  ${ENV_DIR}/credentials.json"
 fi
