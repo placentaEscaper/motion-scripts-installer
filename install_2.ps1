@@ -24,6 +24,12 @@
     8. Bakes a self-update check into `prj`: once a day it checks the latest
        commit on the main branch and, if a newer one exists, pulls it and
        re-syncs dependencies via uv before running main.py.
+    9. Copies the "Liven_Template" template project folder into
+         %LOCALAPPDATA%\projectifier
+       and unpacks tokens.zip into
+         %LOCALAPPDATA%\Programs\projectifier\projectifier\env
+       Both Liven_Template\ and tokens.zip must sit next to this script
+       (i.e. in the same folder as install_2.ps1) at install time.
 
   Re-running install_2.ps1 always force-updates to the latest commit on main.
 
@@ -48,15 +54,24 @@ $ProgramsDir = Join-Path $env:LOCALAPPDATA "Programs\projectifier"   # holds the
 $BinDir = Join-Path $ProgramsDir "bin"
 $CodeDir = Join-Path $ProgramsDir $RepoName                          # the actual git checkout lives here
 $InstallerMetaDir = Join-Path $ProgramsDir ".installer"              # installer's own bookkeeping files
+$ConfigDir = Join-Path $env:LOCALAPPDATA "projectifier"
 # NOTE: the app itself (projectifier/filesystem.py, _default_conf_dir) separately
-# writes %LOCALAPPDATA%\projectifier\configs.txt and
-# %LOCALAPPDATA%\projectifier\Liven_Template folder at runtime — that's unrelated
+# writes %LOCALAPPDATA%\projectifier\configs.txt at runtime — that's unrelated
 # to where we put the code, and is left alone.
 
 $CredFile = Join-Path $InstallerMetaDir ".credentials"
 $ShaFile = Join-Path $InstallerMetaDir ".commit_sha"
 $LastCheckFile = Join-Path $InstallerMetaDir ".last_check"
 $UpdateIntervalSeconds = 86400   # 24 hours
+
+# ScriptDir is where install_2.ps1 itself lives — Liven_Template\ and
+# tokens.zip are expected to sit right next to it at install time.
+$ScriptDir = $PSScriptRoot
+$TemplateName = "Liven_Template"
+$TemplateSrc = Join-Path $ScriptDir $TemplateName
+$TemplateDest = Join-Path $ConfigDir $TemplateName
+$TokensZip = Join-Path $ScriptDir "tokens.zip"
+$EnvDir = Join-Path $CodeDir "env"
 
 # ---------------------------------------------------------------------------
 # Output helpers
@@ -143,7 +158,20 @@ Assert-Success "uv python install $PythonVersion"
 # 4. Directories
 # ---------------------------------------------------------------------------
 New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
+New-Item -ItemType Directory -Force -Path $ConfigDir | Out-Null
 New-Item -ItemType Directory -Force -Path $InstallerMetaDir | Out-Null
+
+# ---------------------------------------------------------------------------
+# 4b. Template project ("Liven_Template" folder -> %LOCALAPPDATA%\projectifier)
+# ---------------------------------------------------------------------------
+if (Test-Path $TemplateSrc -PathType Container) {
+    Info "Copying $TemplateName\ into $ConfigDir..."
+    Remove-Item -Recurse -Force $TemplateDest -ErrorAction SilentlyContinue
+    Copy-Item -Recurse -Force -Path $TemplateSrc -Destination $TemplateDest
+    Ok "Template project installed at $TemplateDest"
+} else {
+    Warn "No '$TemplateName' folder found next to this script ($ScriptDir) — skipping template copy."
+}
 
 # ---------------------------------------------------------------------------
 # 5. Fine-grained GitHub token (the repo is private)
@@ -226,6 +254,21 @@ try {
     Pop-Location
 }
 Ok "Dependencies installed."
+
+# ---------------------------------------------------------------------------
+# 7b. Tokens (tokens.zip -> %LOCALAPPDATA%\Programs\projectifier\projectifier\env)
+# ---------------------------------------------------------------------------
+if (Test-Path $TokensZip -PathType Leaf) {
+    Info "Unpacking tokens.zip into $EnvDir..."
+    New-Item -ItemType Directory -Force -Path $EnvDir | Out-Null
+    Expand-Archive -Path $TokensZip -DestinationPath $EnvDir -Force
+    # Restrict the env folder to the current user only (chmod 700/600 equivalent).
+    icacls $EnvDir /inheritance:r | Out-Null
+    icacls $EnvDir /grant:r "$($env:USERNAME):(OI)(CI)F" | Out-Null
+    Ok "Tokens unpacked into $EnvDir"
+} else {
+    Warn "No 'tokens.zip' found next to this script ($ScriptDir) — skipping token extraction."
+}
 
 # ---------------------------------------------------------------------------
 # 8. Wrapper command `prj` with self-update (prj.ps1 does the work,
@@ -338,12 +381,13 @@ Info "Open a new terminal, after which the '$CmdName' command will be available.
 Info "To force an update check manually: $CmdName --update"
 Write-Host ""
 
-if (-not (Test-Path (Join-Path $CodeDir "env\.env"))) {
-    Warn "$CodeDir\env\.env is missing (it's gitignored, so it doesn't come with the repo)."
+if (-not (Test-Path (Join-Path $EnvDir ".env"))) {
+    Warn "$EnvDir\.env is missing (it's gitignored, so it doesn't come with the repo,"
+    Warn "and no tokens.zip with it was found next to install_2.ps1)."
     Warn "Create it manually before the first run:"
-    Warn "  New-Item -ItemType Directory -Force -Path '$CodeDir\env'"
-    Warn "  Set-Content -Path '$CodeDir\env\.env' -Value 'TOKEN=<your Airtable Personal Access Token>'"
+    Warn "  New-Item -ItemType Directory -Force -Path '$EnvDir'"
+    Warn "  Set-Content -Path '$EnvDir\.env' -Value 'TOKEN=<your Airtable Personal Access Token>'"
     Warn "If you use the Google Drive download feature ('Related creative' field),"
     Warn "you'll also need an OAuth client secret from Google Cloud Console at:"
-    Warn "  $CodeDir\env\credentials.json"
+    Warn "  $EnvDir\credentials.json"
 }
