@@ -113,11 +113,29 @@ Info "Detected Windows ($([System.Environment]::OSVersion.VersionString))."
 # 1. winget
 # ---------------------------------------------------------------------------
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-    Err "winget (App Installer) was not found."
-    Err "Install it from the Microsoft Store (https://aka.ms/getwinget) or via Windows Update, then re-run this script."
-    exit 1
+    Info "winget (App Installer) was not found — attempting to install it automatically..."
+    try {
+        # PowerShell 5.1 often defaults to TLS 1.0/1.1, which the PowerShell
+        # Gallery rejects — force TLS 1.2 before talking to it.
+        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Scope CurrentUser | Out-Null
+        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue
+        Install-Module -Name Microsoft.WinGet.Client -Force -Scope CurrentUser -Repository PSGallery
+        Import-Module Microsoft.WinGet.Client -Force
+        Repair-WinGetPackageManager
+        Update-SessionPath
+    } catch {
+        Warn "Automatic winget install failed: $($_.Exception.Message)"
+    }
+    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+        Err "winget (App Installer) could not be installed automatically."
+        Err "Install it from the Microsoft Store (https://aka.ms/getwinget) or via Windows Update, then re-run this script."
+        exit 1
+    }
+    Ok "winget installed successfully."
+} else {
+    Ok "winget is available."
 }
-Ok "winget is available."
 
 # ---------------------------------------------------------------------------
 # 2. git
