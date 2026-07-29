@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   install_2.ps1 — installer for "projectifier" (https://github.com/placentaEscaper/projectifier) on Windows.
