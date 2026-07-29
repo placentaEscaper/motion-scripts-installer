@@ -9,7 +9,7 @@
     2. Checks that winget is available (App Installer) — used to install git.
     3. Installs git via winget if missing.
     4. Installs uv (Python package manager) via Astral's official installer script if missing.
-    5. Clones/updates the private repository (main branch only) into
+    5. Clones/updates the private repository (windows branch only) into
          %LOCALAPPDATA%\Programs\projectifier\projectifier
        (kept as a subfolder inside %LOCALAPPDATA%\Programs\projectifier, right next to
        the `prj` command itself — a different location from %LOCALAPPDATA%\projectifier,
@@ -22,7 +22,7 @@
     7. Creates the `prj` command (prj.cmd + prj.ps1) and adds its folder to the
        user PATH.
     8. Bakes a self-update check into `prj`: once a day it checks the latest
-       commit on the main branch and, if a newer one exists, pulls it and
+       commit on the windows branch and, if a newer one exists, pulls it and
        re-syncs dependencies via uv before running main.py.
     9. Copies the "Liven_Template" template project folder into
          %LOCALAPPDATA%\projectifier
@@ -31,7 +31,7 @@
        Both Liven_Template\ and tokens.zip must sit next to this script
        (i.e. in the same folder as install_2.ps1) at install time.
 
-  Re-running install_2.ps1 always force-updates to the latest commit on main.
+  Re-running install_2.ps1 always force-updates to the latest commit on the windows branch.
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File install_2.ps1
@@ -45,7 +45,7 @@ $ErrorActionPreference = "Stop"
 $RepoOwner = "placentaEscaper"
 $RepoName = "projectifier"
 $Repo = "$RepoOwner/$RepoName"
-$Branch = "main"
+$Branch = "windows"
 $EntryPoint = "main.py"
 $CmdName = "prj"
 $PythonVersion = "3.14"
@@ -258,7 +258,7 @@ if ($LASTEXITCODE -ne 0) {
 Ok "Access verified."
 
 # ---------------------------------------------------------------------------
-# 6. Clone / update the repository (main branch only)
+# 6. Clone / update the repository (windows branch only)
 # ---------------------------------------------------------------------------
 if (Test-Path (Join-Path $CodeDir ".git")) {
     Info "Updating existing checkout to the latest commit on $Branch..."
