@@ -264,9 +264,15 @@ if (Test-Path (Join-Path $CodeDir ".git")) {
     Info "Updating existing checkout to the latest commit on $Branch..."
     git -C $CodeDir remote set-url origin $AuthRepoUrl
     Assert-Success "git remote set-url"
+    # A previous install may have been a --single-branch clone of a different
+    # branch, which locks origin's fetch refspec to just that branch — make
+    # sure it also tracks the branch we want now, or the fetch below is a
+    # no-op as far as local refs are concerned.
+    git -C $CodeDir remote set-branches origin $Branch
+    Assert-Success "git remote set-branches"
     git -C $CodeDir fetch origin $Branch --depth=1
     Assert-Success "git fetch"
-    git -C $CodeDir checkout $Branch
+    git -C $CodeDir checkout -B $Branch --track "origin/$Branch"
     Assert-Success "git checkout $Branch"
     git -C $CodeDir reset --hard "origin/$Branch"
     Assert-Success "git reset --hard origin/$Branch"
