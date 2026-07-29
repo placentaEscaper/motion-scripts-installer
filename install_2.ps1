@@ -196,10 +196,32 @@ if (Test-Path $TemplateSrc -PathType Container) {
 # ---------------------------------------------------------------------------
 $GithubToken = ""
 
-if (Test-Path $CredFile) {
+# Prefer a token bundled in tokens.zip (git_tokens.txt) so the user never has
+# to paste one in manually.
+if (Test-Path $TokensZip -PathType Leaf) {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $zip = [System.IO.Compression.ZipFile]::OpenRead($TokensZip)
+    try {
+        $entry = $zip.GetEntry("git_tokens.txt")
+        if ($entry) {
+            $reader = New-Object System.IO.StreamReader($entry.Open())
+            $GithubToken = $reader.ReadToEnd().Trim()
+            $reader.Close()
+        }
+    } finally {
+        $zip.Dispose()
+    }
+    if ($GithubToken) {
+        Ok "Found a GitHub access token in tokens.zip (git_tokens.txt)."
+    }
+}
+
+if (-not $GithubToken -and (Test-Path $CredFile)) {
     $GithubToken = Get-Content $CredFile -Raw
     Ok "Found a saved GitHub access token."
-} else {
+}
+
+if (-not $GithubToken) {
     Warn "Repository $Repo is private — a GitHub Fine-grained Personal Access Token is required."
     Write-Host ""
     Info "Create one here: https://github.com/settings/personal-access-tokens/new"
