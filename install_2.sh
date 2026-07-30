@@ -64,7 +64,11 @@ UPDATE_INTERVAL_SECONDS=86400   # 24 hours
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATE_NAME="Liven_Template"
 TEMPLATE_SRC="${SCRIPT_DIR}/${TEMPLATE_NAME}"
-TEMPLATE_DEST="${CONFIG_DIR}/${TEMPLATE_NAME}"
+# Destination folder name must match what projectifier/filesystem.py expects
+# (Project.__init__: self.template_dir = conf_dir / "Liven_Template folder"),
+# which is NOT the same name as the source folder above.
+TEMPLATE_DEST_NAME="Liven_Template folder"
+TEMPLATE_DEST="${CONFIG_DIR}/${TEMPLATE_DEST_NAME}"
 TOKENS_ZIP="${SCRIPT_DIR}/tokens.zip"
 ENV_DIR="${CODE_DIR}/env"
 
