@@ -69,7 +69,11 @@ $UpdateIntervalSeconds = 86400   # 24 hours
 $ScriptDir = $PSScriptRoot
 $TemplateName = "Liven_Template"
 $TemplateSrc = Join-Path $ScriptDir $TemplateName
-$TemplateDest = Join-Path $ConfigDir $TemplateName
+# Destination folder name must match what projectifier/filesystem.py expects
+# (Project.__init__: self.template_dir = conf_dir / "Liven_Template folder"),
+# which is NOT the same name as the source folder above.
+$TemplateDestName = "Liven_Template folder"
+$TemplateDest = Join-Path $ConfigDir $TemplateDestName
 $TokensZip = Join-Path $ScriptDir "tokens.zip"
 $EnvDir = Join-Path $CodeDir "env"
 
