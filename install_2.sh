@@ -232,6 +232,12 @@ info "Installing dependencies via 'uv sync' (per pyproject.toml / uv.lock)..."
 ok "Dependencies installed."
 
 # ---------------------------------------------------------------------------
+# 7a. After Effects scripts (ae_scripts/ -> local AE installation(s))
+# ---------------------------------------------------------------------------
+info "Installing After Effects scripts..."
+( cd "${CODE_DIR}" && uv run python -m projectifier.ae_install )
+
+# ---------------------------------------------------------------------------
 # 7b. Tokens (tokens.zip -> ~/.local/bin/projectifier/env)
 # ---------------------------------------------------------------------------
 if [[ -f "${TOKENS_ZIP}" ]]; then
@@ -290,6 +296,7 @@ self_update() {
     git -C "\${CODE_DIR}" fetch origin "\${BRANCH}" --depth=1 --quiet
     git -C "\${CODE_DIR}" reset --hard "origin/\${BRANCH}" --quiet
     ( cd "\${CODE_DIR}" && uv sync --quiet )
+    ( cd "\${CODE_DIR}" && uv run python -m projectifier.ae_install )
     echo "\${remote_sha}" > "\${SHA_FILE}"
     echo "[${CMD_NAME}] Updated to \${remote_sha:0:7}." >&2
   fi
