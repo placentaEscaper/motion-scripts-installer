@@ -159,12 +159,21 @@ fi
 # ---------------------------------------------------------------------------
 GITHUB_TOKEN=""
 
-if [[ -f "${CRED_FILE}" ]]; then
+# Prefer a token bundled in tokens.zip (git_tokens.txt) so the user never has
+# to paste one in manually.
+if [[ -f "${TOKENS_ZIP}" ]] && command -v unzip >/dev/null 2>&1; then
+  GITHUB_TOKEN="$(unzip -p "${TOKENS_ZIP}" git_tokens.txt 2>/dev/null | tr -d '\r')" || true
+  if [[ -n "${GITHUB_TOKEN}" ]]; then
+    ok "Found a GitHub access token in tokens.zip (git_tokens.txt)."
+  fi
+fi
+
+if [[ -z "${GITHUB_TOKEN}" && -f "${CRED_FILE}" ]]; then
   GITHUB_TOKEN="$(cat "${CRED_FILE}")"
   ok "Found a saved GitHub access token."
-elif [[ -n "${GITHUB_TOKEN:-}" ]]; then
-  :
-else
+fi
+
+if [[ -z "${GITHUB_TOKEN}" ]]; then
   warn "Repository ${REPO} is private — a GitHub Fine-grained Personal Access Token is required."
   echo
   info "Create one here: https://github.com/settings/personal-access-tokens/new"
