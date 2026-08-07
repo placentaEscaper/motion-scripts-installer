@@ -306,6 +306,18 @@ try {
 Ok "Dependencies installed."
 
 # ---------------------------------------------------------------------------
+# 7a. After Effects scripts (ae_scripts/ -> local AE installation(s))
+# ---------------------------------------------------------------------------
+Info "Installing After Effects scripts..."
+Push-Location $CodeDir
+try {
+    uv run python -m projectifier.ae_install
+    Assert-Success "projectifier.ae_install"
+} finally {
+    Pop-Location
+}
+
+# ---------------------------------------------------------------------------
 # 7b. Tokens (tokens.zip -> %LOCALAPPDATA%\Programs\projectifier\projectifier\env)
 # ---------------------------------------------------------------------------
 if (Test-Path $TokensZip -PathType Leaf) {
@@ -368,6 +380,8 @@ function Self-Update {
         try {
             uv sync --quiet
             if (`$LASTEXITCODE -ne 0) { throw "uv sync failed (exit code `$LASTEXITCODE)" }
+            uv run python -m projectifier.ae_install
+            if (`$LASTEXITCODE -ne 0) { throw "projectifier.ae_install failed (exit code `$LASTEXITCODE)" }
         } finally { Pop-Location }
         Set-Content -Path `$ShaFile -Value `$remoteSha -NoNewline
         Write-Host "[$CmdName] Updated to `$(`$remoteSha.Substring(0,7))."
