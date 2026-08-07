@@ -24,11 +24,11 @@
     8. Bakes a self-update check into `prj`: once a day it checks the latest
        commit on the main branch and, if a newer one exists, pulls it and
        re-syncs dependencies via uv before running main.py.
-    9. Copies the "Liven_Template" template project folder into
+    9. Copies the "Liven_Template folder" template project folder into
          %LOCALAPPDATA%\projectifier
        and unpacks tokens.zip into
          %LOCALAPPDATA%\Programs\projectifier\projectifier\env
-       Both Liven_Template\ and tokens.zip must sit next to this script
+       Both "Liven_Template folder"\ and tokens.zip must sit next to this script
        (i.e. in the same folder as install_2.ps1) at install time.
 
   Re-running install_2.ps1 always force-updates to the latest commit on the main branch.
@@ -64,16 +64,14 @@ $ShaFile = Join-Path $InstallerMetaDir ".commit_sha"
 $LastCheckFile = Join-Path $InstallerMetaDir ".last_check"
 $UpdateIntervalSeconds = 86400   # 24 hours
 
-# ScriptDir is where install_2.ps1 itself lives — Liven_Template\ and
+# ScriptDir is where install_2.ps1 itself lives — "Liven_Template folder"\ and
 # tokens.zip are expected to sit right next to it at install time.
 $ScriptDir = $PSScriptRoot
-$TemplateName = "Liven_Template"
+# Folder name must match what projectifier/filesystem.py expects
+# (Project.__init__: self.template_dir = conf_dir / "Liven_Template folder").
+$TemplateName = "Liven_Template folder"
 $TemplateSrc = Join-Path $ScriptDir $TemplateName
-# Destination folder name must match what projectifier/filesystem.py expects
-# (Project.__init__: self.template_dir = conf_dir / "Liven_Template folder"),
-# which is NOT the same name as the source folder above.
-$TemplateDestName = "Liven_Template folder"
-$TemplateDest = Join-Path $ConfigDir $TemplateDestName
+$TemplateDest = Join-Path $ConfigDir $TemplateName
 $TokensZip = Join-Path $ScriptDir "tokens.zip"
 $EnvDir = Join-Path $CodeDir "env"
 
@@ -184,7 +182,7 @@ New-Item -ItemType Directory -Force -Path $ConfigDir | Out-Null
 New-Item -ItemType Directory -Force -Path $InstallerMetaDir | Out-Null
 
 # ---------------------------------------------------------------------------
-# 4b. Template project ("Liven_Template" folder -> %LOCALAPPDATA%\projectifier)
+# 4b. Template project ("Liven_Template folder" -> %LOCALAPPDATA%\projectifier)
 # ---------------------------------------------------------------------------
 if (Test-Path $TemplateSrc -PathType Container) {
     Info "Copying $TemplateName\ into $ConfigDir..."
