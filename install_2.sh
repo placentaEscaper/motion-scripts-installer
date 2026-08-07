@@ -20,11 +20,11 @@
 #   7. Bakes a self-update check into `prj`: once a day it checks the latest
 #      commit on the main branch and, if a newer one exists, pulls it and
 #      re-syncs dependencies via uv before running main.py.
-#   8. Copies the "Liven_Template" template project folder into
+#   8. Copies the "Liven_Template folder" template project folder into
 #        ~/.config/projectifier/
 #      and unpacks tokens.zip into
 #        ~/.local/bin/projectifier/env
-#      Both Liven_Template/ and tokens.zip must sit next to this script
+#      Both "Liven_Template folder"/ and tokens.zip must sit next to this script
 #      (i.e. in the same folder as install_2.sh) at install time.
 #
 # Re-running install.sh always force-updates to the latest commit on main.
@@ -59,16 +59,14 @@ SHA_FILE="${INSTALLER_META_DIR}/.commit_sha"
 LAST_CHECK_FILE="${INSTALLER_META_DIR}/.last_check"
 UPDATE_INTERVAL_SECONDS=86400   # 24 hours
 
-# SCRIPT_DIR is where install_2.sh itself lives — Liven_Template/ and
+# SCRIPT_DIR is where install_2.sh itself lives — "Liven_Template folder"/ and
 # tokens.zip are expected to sit right next to it at install time.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEMPLATE_NAME="Liven_Template"
+# Folder name must match what projectifier/filesystem.py expects
+# (Project.__init__: self.template_dir = conf_dir / "Liven_Template folder").
+TEMPLATE_NAME="Liven_Template folder"
 TEMPLATE_SRC="${SCRIPT_DIR}/${TEMPLATE_NAME}"
-# Destination folder name must match what projectifier/filesystem.py expects
-# (Project.__init__: self.template_dir = conf_dir / "Liven_Template folder"),
-# which is NOT the same name as the source folder above.
-TEMPLATE_DEST_NAME="Liven_Template folder"
-TEMPLATE_DEST="${CONFIG_DIR}/${TEMPLATE_DEST_NAME}"
+TEMPLATE_DEST="${CONFIG_DIR}/${TEMPLATE_NAME}"
 TOKENS_ZIP="${SCRIPT_DIR}/tokens.zip"
 ENV_DIR="${CODE_DIR}/env"
 
@@ -143,7 +141,7 @@ mkdir -p "${CONFIG_DIR}"
 mkdir -p "${INSTALLER_META_DIR}"
 
 # ---------------------------------------------------------------------------
-# 4b. Template project ("Liven_Template" folder -> ~/.config/projectifier/)
+# 4b. Template project ("Liven_Template folder" -> ~/.config/projectifier/)
 # ---------------------------------------------------------------------------
 if [[ -d "${TEMPLATE_SRC}" ]]; then
   info "Copying ${TEMPLATE_NAME}/ into ${CONFIG_DIR}..."
